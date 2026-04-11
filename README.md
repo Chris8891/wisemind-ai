@@ -11,8 +11,6 @@ WiseMindAI 是一款本地优先的 AI 学习与知识工作台。将文档中�
 
 ## 安装与发现
 
-如果你把这个技能按 Agent Skills 标准发布到 GitHub，用户可以直接用 `skills` CLI 安装。
-
 ```bash
 # 查看这个仓库里可安装的技能
 npx skills add Chris8891/wisemind-ai --list

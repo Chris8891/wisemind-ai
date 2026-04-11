@@ -11,8 +11,6 @@ It enables Claude Code, Codex, OpenClaw, and other compatible agents to work wit
 
 ## Installation & Discovery
 
-If you publish this skill to GitHub using an Agent Skills compatible layout, users can install it with the `skills` CLI.
-
 ```bash
 # List installable skills in this repository
 npx skills add Chris8891/wisemind-ai --list

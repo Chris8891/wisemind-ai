@@ -1,0 +1,1 @@
+# WiseMindAI Skill

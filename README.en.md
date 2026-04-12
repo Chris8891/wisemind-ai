@@ -108,7 +108,7 @@ If it fails:
 After installation, test it with a simple request:
 
 ```text
-Save this content to WiseMindAI with the title "Install Test":
+Save this content to wisemind-ai with the title "Install Test":
 This is my first test entry.
 ```
 
@@ -121,7 +121,7 @@ If the agent saves it successfully, the skill is working.
 You can say:
 
 ```text
-Save this meeting summary to WiseMindAI with the title "Weekly Sync".
+Save this meeting summary to wisemind-ai with the title "Weekly Sync".
 ```
 
 Good for:
@@ -148,7 +148,7 @@ If it cannot fetch the content, it will usually save the link only or ask you to
 You can say:
 
 ```text
-Put this content into the `AI Research` knowledge base in WiseMindAI with the title "RAG Notes".
+Put this content into the `AI Research` knowledge base in wisemind-ai with the title "RAG Notes".
 ```
 
 Good for:
@@ -177,24 +177,24 @@ Good for:
 You can say:
 
 ```text
-Search my WiseMindAI for content about `RAG`.
+Search my wisemind-ai for content about `RAG`.
 ```
 
 Or:
 
 ```text
-Update the summary of `RAG Notes` in WiseMindAI.
+Update the summary of `RAG Notes` in wisemind-ai.
 ```
 
 ## Suggested Prompts
 
-- Save this content to WiseMindAI with the title "Weekly Sync".
-- Save this webpage to the `Read Later` folder in WiseMindAI.
-- Search my WiseMindAI for content about `RAG`.
+- Save this content to wisemind-ai with the title "Weekly Sync".
+- Save this webpage to the `Read Later` folder in wisemind-ai.
+- Search my wisemind-ai for content about `RAG`.
 - Put this article into the `AI Research` knowledge base.
 - Create 8 study cards from this content in `AI Basics / Retrieval-Augmented Generation`.
-- Update the summary of `RAG Notes` in WiseMindAI.
-- Delete the test note `Install Test` from WiseMindAI.
+- Update the summary of `RAG Notes` in wisemind-ai.
+- Delete the test note `Install Test` from wisemind-ai.
 
 ## Default Behavior
 

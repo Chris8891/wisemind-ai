@@ -108,7 +108,7 @@ curl http://127.0.0.1:38221/api/health
 安装完成后，可以直接给 Agent 一条简单指令：
 
 ```text
-把这段内容保存到 WiseMindAI，标题叫“安装测试”：
+把这段内容保存到 wisemind-ai，标题叫“安装测试”：
 这是我的第一条测试内容。
 ```
 
@@ -121,7 +121,7 @@ curl http://127.0.0.1:38221/api/health
 你可以直接说：
 
 ```text
-把这段会议纪要保存到 WiseMindAI，标题叫“周会记录”。
+把这段会议纪要保存到 wisemind-ai，标题叫“周会记录”。
 ```
 
 适合：
@@ -136,7 +136,7 @@ curl http://127.0.0.1:38221/api/health
 你可以直接说：
 
 ```text
-把这个网页保存到 WiseMindAI 的“待读”文件夹：
+把这个网页保存到 wisemind-ai 的“待读”文件夹：
 https://example.com/article
 ```
 
@@ -148,7 +148,7 @@ https://example.com/article
 你可以直接说：
 
 ```text
-把这篇内容放进 WiseMindAI 的“AI 研究”知识库，标题叫“RAG Notes”。
+把这篇内容放进 wisemind-ai 的“AI 研究”知识库，标题叫“RAG Notes”。
 ```
 
 适合：
@@ -177,24 +177,24 @@ https://example.com/article
 你可以直接说：
 
 ```text
-在 WiseMindAI 里搜索一下 “RAG” 相关内容。
+在 wisemind-ai 里搜索一下 “RAG” 相关内容。
 ```
 
 或者：
 
 ```text
-帮我更新 WiseMindAI 里那篇 “RAG Notes” 的摘要。
+帮我更新 wisemind-ai 里那篇 “RAG Notes” 的摘要。
 ```
 
 ## 推荐提示词
 
-- 把这段内容保存到 WiseMindAI，标题叫“周会记录”。
-- 把这个网页保存到 WiseMindAI 的“待读”文件夹。
-- 在 WiseMindAI 里搜索一下 “RAG” 相关内容。
+- 把这段内容保存到 wisemind-ai，标题叫“周会记录”。
+- 把这个网页保存到 wisemind-ai 的“待读”文件夹。
+- 在 wisemind-ai 里搜索一下 “RAG” 相关内容。
 - 把这篇文章放进“AI 研究”知识库。
 - 根据这段内容创建 8 张学习卡片，放到“AI 基础 / 检索增强”。
-- 帮我更新 WiseMindAI 里那篇 “RAG Notes” 的摘要。
-- 删除 WiseMindAI 里那条测试笔记“安装测试”。
+- 帮我更新 wisemind-ai 里那篇 “RAG Notes” 的摘要。
+- 删除 wisemind-ai 里那条测试笔记“安装测试”。
 
 ## 这个技能默认会怎么工作
 

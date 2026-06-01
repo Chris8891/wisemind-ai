@@ -3,7 +3,7 @@ name: wisemind-ai
 description: Use this skill when the user wants to create, save, search, update, organize, or delete content in WiseMindAI through the local HTTP API. Supports notes, files, links, webpages, folders, knowledge bases, knowledge documents, card decks, card folders, cards, global search, resolve workflows, and idempotent upsert writes. Trigger on requests like "保存到 WiseMindAI", "记到知识库", "帮我存网页", "创建学习卡片", "搜索我的 WiseMindAI", "更新/删除 WiseMindAI 里的内容", "save to WiseMindAI", "search my WiseMindAI notes", or any task involving WiseMindAI content management.
 metadata:
   author: wangpingan
-  version: '2.1.0'
+  version: '2.1.1'
 ---
 
 # WiseMindAI Skill
@@ -28,6 +28,27 @@ Use this skill to operate a local WiseMindAI app over HTTP.
 6. Use `upsert` for URLs or file paths that may be written repeatedly.
 7. Never delete unless the user asked clearly for deletion.
 8. Report the result briefly with what was saved or changed and where it went.
+
+## Standard Source Fields
+
+When creating or updating knowledge documents, always preserve the source metadata:
+
+| Source kind | `type` | `fileType` | `fileExt` | `fileUrl` |
+| ----------- | ------ | ---------- | --------- | --------- |
+| Plain text typed by the user | `input` | `input` | `input` | empty string |
+| Web URL, bookmark, or webpage article | `link` | `link` | `link` | original URL |
+| Local/imported file | `file` or `upload` | discovered file type | actual extension | file path or Wise file URL |
+
+For webpage or URL content saved into a knowledge base, `fileUrl` is required and must be the original URL. Do not save URL-derived knowledge documents with empty `fileUrl`, `fileType`, or `fileExt`; the app uses these fields to display the document as a link.
+
+## Common Payload Guardrails
+
+- Notes use `title` plus `content`. When saving Markdown/plain text notes, send the same body to `content`, `md`, and `text` unless you intentionally need different representations. `tags` must be an array.
+- File records use `name` for the visible title and `filePath` for the URL or local path. For links, always send `type:"link"` and `fileType:"link"`. For typed text records, send `type:"input"` and `fileType:"input"`.
+- Webpages saved to the document area should use `/api/v2/files/save-webpage` with `url`, `title`, `summary`, and `content`.
+- Knowledge documents use `title` for display and must include `knowledgeBaseId`. For source-aware records, include all of `type`, `fileType`, `fileExt`, and `fileUrl`; do not rely on defaults.
+- Cards require numeric `deckId`, numeric `folderId`, and non-empty `content`. For batch creation, each item in `cards` must contain `content`; `tags` should be an array when provided.
+- Patch requests should include only fields that are intentionally changing. Do not send blank source fields in a patch unless the user asked to clear them.
 
 ## Health Check
 
@@ -198,7 +219,7 @@ Create a note:
 ```bash
 curl -s -X POST "http://127.0.0.1:38221/api/v2/notes" \
   -H "Content-Type: application/json" \
-  -d '{"title":"Note title","content":"Body text","tags":["tag1","tag2"]}'
+  -d '{"title":"Note title","content":"Body text","md":"Body text","text":"Body text","tags":["tag1","tag2"]}'
 ```
 
 If the user gave a folder name, resolve the folder first and pass `from_folder`.
@@ -210,10 +231,18 @@ For text that should live as a document record instead of a note:
 ```bash
 curl -s -X POST "http://127.0.0.1:38221/api/v2/files" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Document title","type":"input","fileType":"input","content":"Text content"}'
+  -d '{"name":"Document title","type":"input","fileType":"input","filePath":"","content":"Text content","summary":"Short summary"}'
 ```
 
-For URLs, local files, or imported resources, choose the appropriate `type` and `fileType`. If uncertain, fetch `/api/capabilities`.
+For URLs, use link metadata and keep the original URL in `filePath`:
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/files/upsert" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Article title","filePath":"https://example.com/article","type":"link","fileType":"link","summary":"Short summary","content":"Optional captured content"}'
+```
+
+For local files, choose the appropriate `type` extension and `fileType` category. If uncertain, fetch `/api/capabilities`.
 
 ### Save A Webpage
 
@@ -222,6 +251,7 @@ If the user provides only a URL:
 1. Use the host agent's available web, browser, or fetch capability to get the page title and main content.
 2. If full content is available, save it with `save-webpage`.
 3. If full content is not available, either save a link record with `upsert` or ask the user to provide the content they want stored.
+4. If the user explicitly said to save the URL into a knowledge base, use `/api/v2/knowledge-documents` instead and follow the link-shaped knowledge document payload.
 
 Save a webpage with content:
 
@@ -252,8 +282,18 @@ Then create the knowledge document:
 ```bash
 curl -s -X POST "http://127.0.0.1:38221/api/v2/knowledge-documents" \
   -H "Content-Type: application/json" \
-  -d '{"knowledgeBaseId":1,"title":"RAG Notes","content":"Document body","summary":"Short summary","type":"input"}'
+  -d '{"knowledgeBaseId":1,"title":"RAG Notes","content":"Document body","summary":"Short summary","type":"input","fileType":"input","fileExt":"input","fileUrl":""}'
 ```
+
+If the source is a URL or webpage, keep the original URL in `fileUrl` and mark all source type fields as `link`:
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/knowledge-documents" \
+  -H "Content-Type: application/json" \
+  -d '{"knowledgeBaseId":1,"title":"Article title","content":"Main article content","summary":"Short summary","type":"link","fileType":"link","fileExt":"link","fileUrl":"https://example.com/article"}'
+```
+
+For requests like "put this article URL into knowledge base X", fetch the title/content when possible, then create the knowledge document with the link payload above. If content cannot be fetched, still preserve the URL fields and save a compact link record with `content` and `summary` set to the available title, description, or a short note.
 
 If the user asked to update an existing knowledge document, search or list first, then patch the matched item.
 
@@ -274,7 +314,7 @@ Batch cards:
 ```bash
 curl -s -X POST "http://127.0.0.1:38221/api/v2/cards/batch" \
   -H "Content-Type: application/json" \
-  -d '{"deckId":1,"folderId":1,"cards":[{"content":"Card 1"},{"content":"Card 2"}]}'
+  -d '{"deckId":1,"folderId":1,"cards":[{"content":"Card 1","tags":["tag1"]},{"content":"Card 2","tags":["tag2"]}]}'
 ```
 
 Card-writing guidance:

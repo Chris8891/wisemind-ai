@@ -37,25 +37,28 @@ If you are only testing locally for now, use the local installation guide below.
 
 This is a WiseMindAI skill package for AI agents.
 
+Current skill version: **2.2.1** (aligned with WiseMindAI 2.0 Local API / MCP resources).
+
 It helps agents:
 
-- save notes
-- save text, file records, links, and full webpages
-- save content into specific folders
-- write into knowledge bases and knowledge documents
-- create card decks, card folders, and learning cards
-- search, update, and delete existing items
-- use `resolve` and `upsert` workflows to reduce duplicates
+- CRUD for notes, documents, knowledge bases, and learning cards (with resolve + batch)
+- save webpage content (`save-webpage`) or dedupe links/paths (`upsert`)
+- global search, workspaces, unified tags, and open items in the desktop app (`open-source`)
+- AI helpers: summarize, chat, draft cards, rewrite, generate quizzes (requires `aiReady`)
+- annotations, todos, and due card review (gated by `capabilities.features`)
+- discover `features` first, then pick a playbook—never call gated APIs blindly
 
 ## Requirements
 
 Before installing this skill, make sure:
 
-- WiseMindAI is installed and running on the same machine
-- the WiseMindAI local API is enabled
+- **WiseMindAI 2.0** (or a build with full Local API v2) is installed and running
+- the WiseMindAI local API is enabled (Settings › Advanced › Developer)
 - the default endpoint is reachable: `http://127.0.0.1:38221`
+- for summarize / quiz / chat, a model is connected (`aiReady: true` from `/api/capabilities`)
 - your agent tool can import a local skill or read a local `SKILL.md`
 - for full webpage saving, the host agent should ideally also have web-fetching or browser capability
+- the same surface is also available via MCP (default `38222`); see the MCP guide under `docs/03-平台与插件/本地API与MCP/`
 
 ## Local Installation Guide
 

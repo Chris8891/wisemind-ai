@@ -1,14 +1,14 @@
 ---
 name: wisemind-ai
-description: Use this skill when the user wants to create, save, search, update, organize, or delete content in WiseMindAI through the local HTTP API. Supports notes, files, links, webpages, folders, knowledge bases, knowledge documents, card decks, card folders, cards, global search, resolve workflows, and idempotent upsert writes. Trigger on requests like "保存到 WiseMindAI", "记到知识库", "帮我存网页", "创建学习卡片", "搜索我的 WiseMindAI", "更新/删除 WiseMindAI 里的内容", "save to WiseMindAI", "search my WiseMindAI notes", or any task involving WiseMindAI content management.
+description: Use this skill when the user wants to create, save, search, update, organize, summarize, quiz, annotate, review cards, open sources, or delete content in WiseMindAI through the local HTTP API. Supports notes, files, links, webpages, folders, knowledge bases, knowledge documents, cards, tags, annotations, assistant chat/summarize/quiz, card review, workspace/open-source, global search, resolve workflows, and idempotent upsert writes. Trigger on requests like "保存到 WiseMindAI", "记到知识库", "帮我存网页", "创建学习卡片", "总结这段", "出几道题", "搜索我的 WiseMindAI", "打开到客户端", "save to WiseMindAI", or any task involving WiseMindAI content or AI helpers.
 metadata:
   author: wangpingan
-  version: '2.1.1'
+  version: '2.2.1'
 ---
 
 # WiseMindAI Skill
 
-Use this skill to operate a local WiseMindAI app over HTTP.
+Use this skill to operate a local WiseMindAI app over HTTP (Local API v2 / app 2.0).
 
 ## Defaults
 
@@ -17,11 +17,12 @@ Use this skill to operate a local WiseMindAI app over HTTP.
 - Prefer `/api/v2/*` over legacy endpoints.
 - Send JSON with `Content-Type: application/json`.
 - Use `curl` unless the host agent already has a better built-in HTTP tool.
+- Authoritative endpoint docs live in the desktop app API dialog and `packages/shared/config/localApi.ts`. This skill is a playbook, not a full OpenAPI dump.
 
 ## Required Workflow
 
 1. Check connectivity before doing anything else.
-2. If an enum, route, or payload shape is uncertain, fetch capabilities.
+2. Fetch `/api/capabilities` and read `features` + `aiReady` before advanced or AI actions.
 3. Choose the correct WiseMindAI object type before writing.
 4. Search or read before writing, updating, or deleting.
 5. Use `resolve` endpoints for folders, knowledge bases, decks, and card folders.
@@ -34,7 +35,7 @@ Use this skill to operate a local WiseMindAI app over HTTP.
 When creating or updating knowledge documents, always preserve the source metadata:
 
 | Source kind | `type` | `fileType` | `fileExt` | `fileUrl` |
-| ----------- | ------ | ---------- | --------- | --------- |
+| --- | --- | --- | --- | --- |
 | Plain text typed by the user | `input` | `input` | `input` | empty string |
 | Web URL, bookmark, or webpage article | `link` | `link` | `link` | original URL |
 | Local/imported file | `file` or `upload` | discovered file type | actual extension | file path or Wise file URL |
@@ -72,7 +73,7 @@ If this fails:
 
 ## Capabilities Discovery
 
-Use this when you need the current supported groups, endpoints, or enum values:
+Always fetch this before assistant, annotation, quiz, todo, subscription, or tags-list workflows:
 
 ```bash
 curl -s http://127.0.0.1:38221/api/capabilities
@@ -80,12 +81,27 @@ curl -s http://127.0.0.1:38221/api/capabilities
 
 This endpoint exposes:
 
-- supported groups
-- endpoint list
-- `fileTypeOptions`
-- `fileCategoryOptions`
-- `knowledgeTypeOptions`
-- `knowledgeStatusOptions`
+- `features` — capability gates used by plugins and this skill
+- `aiReady` / `aiModel` — whether assistant endpoints can run
+- supported groups and endpoint list
+- `fileTypeOptions` / `fileCategoryOptions` / `knowledgeTypeOptions` / `knowledgeStatusOptions`
+
+### Feature gates (check before calling)
+
+| Feature | Typical endpoints |
+| --- | --- |
+| `tags` | `GET /api/v2/tags` |
+| `annotations` | `/api/v2/annotations` |
+| `screenshot` | `POST /api/v2/screenshots` |
+| `quiz` | `POST /api/v2/assistant/quiz` |
+| `task-plan` | `POST /api/v2/assistant/tasks/plan` |
+| `todos` | `POST /api/v2/todos` |
+| `subscriptions` | `POST /api/v2/subscriptions` |
+| `chat-history` | `/api/v2/assistant/sessions` |
+| `agent-handoff` | `POST /api/v2/open-source` with `type:"agent"` |
+| `workspace` | `GET /api/v2/workspace/state` |
+
+If a feature is missing, tell the user to update/open WiseMindAI 2.0 and enable Local API. If `aiReady` is false, do not call assistant endpoints; ask the user to connect a model first.
 
 Prefer runtime discovery instead of hard-coding optional values when uncertain.
 
@@ -105,6 +121,14 @@ Default choices:
 - Content explicitly meant for a knowledge base: save as a knowledge document.
 - Quiz, memorization, flashcard, or card request: create cards.
 
+Chinese routing guardrails:
+
+- Treat `保存到 wisemind-ai 文档中`, `保存到 wisemind-ai 文档中心`, `保存到文档`, `保存到文件`, and `存为链接` as the document center. Use `files`, preferably `/api/v2/files/save-webpage` or `/api/v2/files/upsert`.
+- Do not interpret the Chinese word `文档` by itself as `knowledge-documents`. In this skill, `knowledge-documents` is only for an explicitly named knowledge base.
+- Use `knowledge-documents` only when the user clearly says `知识库`, `知识库文档`, `放进某个知识库`, or provides a knowledge base name as the destination.
+- Do not create or resolve a knowledge base such as `Skill 资料` unless the user explicitly asked for that knowledge base.
+- When the destination is the document center, report it as `文档中心`, not as `知识库`.
+
 ## Core Endpoints
 
 ### Common
@@ -112,6 +136,10 @@ Default choices:
 - `GET /api/health`
 - `GET /api/capabilities`
 - `GET /api/search`
+- `GET /api/v2/workspace/state`
+- `GET /api/v2/account/usage`
+- `GET /api/v2/tags`
+- `POST /api/v2/open-source`
 
 ### Notes
 
@@ -165,6 +193,30 @@ Default choices:
 - `PATCH /api/v2/cards/:id`
 - `DELETE /api/v2/cards/:id`
 - `POST /api/v2/cards/batch`
+- `GET /api/v2/card-review/due`
+- `POST /api/v2/card-review/sessions`
+
+### Assistant (requires `aiReady`)
+
+- `POST /api/v2/assistant/chat`
+- `POST /api/v2/assistant/summarize`
+- `POST /api/v2/assistant/generate-cards`
+- `POST /api/v2/assistant/rewrite`
+- `POST /api/v2/assistant/quiz`
+- `POST /api/v2/assistant/tasks/plan`
+- `GET /api/v2/assistant/sessions`
+- `GET /api/v2/assistant/sessions/:id`
+
+### Annotations / todos (feature-gated)
+
+- `GET|POST /api/v2/annotations` · `PATCH|DELETE /api/v2/annotations/:id`
+- `POST /api/v2/todos`
+- `POST /api/v2/subscriptions`
+- `POST /api/v2/screenshots`
+
+Streaming (`*/stream`) and transcription WebSocket are available on Local API HTTP but are optional for this skill; prefer non-stream endpoints unless the host can consume NDJSON.
+
+If the host is connected to WiseMindAI MCP (`http://127.0.0.1:38222`) instead of raw HTTP, prefer Resource `wisemind://capabilities` / tool `get_local_api_capabilities` first, then the same playbooks via `api_*` tools. Do not expect stream tools on MCP.
 
 ## Operating Rules
 
@@ -242,6 +294,8 @@ curl -s -X POST "http://127.0.0.1:38221/api/v2/files/upsert" \
   -d '{"name":"Article title","filePath":"https://example.com/article","type":"link","fileType":"link","summary":"Short summary","content":"Optional captured content"}'
 ```
 
+If you only know the URL and do not have a real page title yet, use the URL as `name`; never use a folder name, knowledge base name, or generic destination label such as `Skill 资料` as the visible link name.
+
 For local files, choose the appropriate `type` extension and `fileType` category. If uncertain, fetch `/api/capabilities`.
 
 ### Save A Webpage
@@ -252,6 +306,25 @@ If the user provides only a URL:
 2. If full content is available, save it with `save-webpage`.
 3. If full content is not available, either save a link record with `upsert` or ask the user to provide the content they want stored.
 4. If the user explicitly said to save the URL into a knowledge base, use `/api/v2/knowledge-documents` instead and follow the link-shaped knowledge document payload.
+
+For requests like `https://example.com 保存到 wisemind-ai 文档中`, the correct target is the document center:
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/files/upsert" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"https://example.com","filePath":"https://example.com","type":"link","fileType":"link"}'
+```
+
+After a successful document-center save, report in this shape:
+
+```markdown
+✅ **已保存！**
+
+- 位置：文档中心
+- 文档 ID：123
+- filePath: https://example.com
+- type、fileType 都是 "link"
+```
 
 Save a webpage with content:
 
@@ -340,6 +413,75 @@ Deletion is destructive. Only proceed when:
 - the target is unambiguous.
 
 If the target is ambiguous, ask before deleting anything.
+
+### Summarize Text Or A Webpage
+
+1. Confirm `aiReady` from capabilities.
+2. Prefer saving the source first (`save-webpage` / `upsert`) when the user asked to keep it.
+3. Call summarize:
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/assistant/summarize" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"正文","sourceTitle":"标题","style":"brief","language":"zh_CN"}'
+```
+
+4. Optionally save the markdown result as a note, or open the source with `/api/v2/open-source`.
+
+### Generate Cards Or A Quiz
+
+Cards draft (then batch-save):
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/assistant/generate-cards" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"正文","count":5,"difficulty":"standard","structure":"qa"}'
+```
+
+Quiz (requires feature `quiz`):
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/assistant/quiz" \
+  -H "Content-Type: application/json" \
+  -d '{"content":"正文","questionCount":5,"questionTypes":["single","judge"],"difficulty":"medium"}'
+```
+
+Then open with `{"type":"quiz","id":<paperId>}` via `/api/v2/open-source` when useful.
+
+### List Due Review Cards
+
+Requires card data in the app:
+
+```bash
+curl -s "http://127.0.0.1:38221/api/v2/card-review/due?limit=20"
+```
+
+### Create An Annotation
+
+Requires feature `annotations`. Prefer listing first by `url` or `fileId`.
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/annotations" \
+  -H "Content-Type: application/json" \
+  -d '{"url":"https://example.com/page","quote":"划词原文","note":"备注","color":"yellow"}'
+```
+
+### Open In The Desktop App
+
+```bash
+curl -s -X POST "http://127.0.0.1:38221/api/v2/open-source" \
+  -H "Content-Type: application/json" \
+  -d '{"type":"file","id":42}'
+```
+
+For “让 AI 去做”, use `{"type":"agent","prompt":"..."}` when feature `agent-handoff` is present.
+
+### List Tags / Workspace
+
+```bash
+curl -s "http://127.0.0.1:38221/api/v2/tags"
+curl -s "http://127.0.0.1:38221/api/v2/workspace/state"
+```
 
 ## Result Reporting
 

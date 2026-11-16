@@ -37,25 +37,28 @@ npx skills add Chris8891/wisemind-ai@wisemind-ai -g -y
 
 这是一个给 AI Agent 使用的 WiseMindAI 技能包。
 
+当前 Skill 版本：**2.2.1**（对齐 WiseMindAI 2.0 Local API / MCP resources）。
+
 它可以帮助 Agent：
 
-- 保存笔记
-- 保存文本、文件记录、网页链接和网页正文
-- 保存到指定文件夹
-- 写入知识库和知识文档
-- 创建卡片集、目录和学习卡片
-- 搜索、更新、删除已有内容
-- 用 `resolve` 和 `upsert` 减少重复创建
+- 笔记 / 文档 / 知识库 / 学习卡片：增删改查、文件夹 resolve、批量制卡
+- 网页：保存正文（`save-webpage`）或链接去重写入（`upsert`）
+- 全局搜索、学习空间、统一标签库、在客户端打开内容（`open-source`）
+- AI 助手：总结、对话、生成卡片草稿、改写、出测验（需模型已接通 `aiReady`）
+- 批注高亮、待办、到期复习卡（按 `capabilities.features` 门控）
+- 先读 features，再选 playbook，避免盲调未开放接口
 
 ## 使用前要求
 
 在安装这个技能前，请先确认：
 
-- 你的电脑已经安装并运行 WiseMindAI
-- WiseMindAI 已开启本地 API
+- 你的电脑已经安装并运行 **WiseMindAI 2.0**（或带完整 Local API v2 的开发构建）
+- WiseMindAI 已开启本地 API（设置 › 进阶 › 开发者）
 - 默认接口地址可访问：`http://127.0.0.1:38221`
+- 如需总结 / 出题 / 对话，请先在客户端接通模型（`/api/capabilities` 中 `aiReady: true`）
 - 你的 Agent 工具支持导入本地 Skill，或者支持读取本地 `SKILL.md`
 - 如果你希望保存网页正文，宿主 Agent 最好还具备网页抓取或浏览能力
+- 也可通过 MCP（默认 `38222`）调用同一套能力；详见 `docs/03-平台与插件/本地API与MCP/MCP服务使用指南.md`
 
 ## 本地安装教程
 
